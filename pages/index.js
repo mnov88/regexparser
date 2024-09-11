@@ -1,7 +1,6 @@
 // File: pages/index.js
 import { useState } from 'react';
 
-// EULawParser utility
 class EULawParser {
   constructor() {
     this.titlePattern = /^(Regulation|Directive|Decision|Recommendation|Opinion)\s+(\(EU\)\s+\d{4}\/\d+)\s+of\s+the\s+(.+)$/i;
@@ -30,16 +29,16 @@ class EULawParser {
       if (titleMatch) {
         document.title = `${titleMatch[1]} ${titleMatch[2]} of the ${titleMatch[3]}`;
       } else if (chapterMatch) {
-        currentChapter = { id: Math.random().toString(36).substr(2, 9), number: chapterMatch[1], title: chapterMatch[2], sections: [], articles: [] };
+        currentChapter = { number: chapterMatch[1], title: chapterMatch[2], sections: [], articles: [] };
         document.chapters.push(currentChapter);
         currentSection = null;
         currentArticle = null;
       } else if (sectionMatch) {
-        currentSection = { id: Math.random().toString(36).substr(2, 9), number: sectionMatch[1], title: sectionMatch[2], articles: [] };
+        currentSection = { number: sectionMatch[1], title: sectionMatch[2], articles: [] };
         currentChapter.sections.push(currentSection);
         currentArticle = null;
       } else if (articleMatch) {
-        currentArticle = { id: Math.random().toString(36).substr(2, 9), number: articleMatch[1], title: articleMatch[2], paragraphs: [] };
+        currentArticle = { number: articleMatch[1], title: articleMatch[2], paragraphs: [] };
         if (currentSection) {
           currentSection.articles.push(currentArticle);
         } else if (currentChapter) {
@@ -48,7 +47,7 @@ class EULawParser {
           document.unassignedArticles.push(currentArticle);
         }
       } else if (paragraphMatch && currentArticle) {
-        currentArticle.paragraphs.push({ id: Math.random().toString(36).substr(2, 9), number: paragraphMatch[1], content: paragraphMatch[2] });
+        currentArticle.paragraphs.push({ number: paragraphMatch[1], content: paragraphMatch[2] });
       } else if (subparagraphMatch && currentArticle) {
         const lastParagraph = currentArticle.paragraphs[currentArticle.paragraphs.length - 1];
         if (lastParagraph) {
@@ -61,140 +60,9 @@ class EULawParser {
   }
 }
 
-// ArticleView component
-function ArticleView({ article, onBack }) {
-  return (
-    <div>
-      <button onClick={onBack}>Back</button>
-      <h2>Article {article.number}</h2>
-      <h3>{article.title}</h3>
-      {article.paragraphs.map((paragraph, index) => (
-        <p key={index}>
-          {paragraph.number && <span style={{ fontWeight: 'bold' }}>{paragraph.number} </span>}
-          {paragraph.content}
-        </p>
-      ))}
-    </div>
-  );
-}
-
-// SectionView component
-function SectionView({ section, onBack }) {
-  const [selectedArticle, setSelectedArticle] = useState(null);
-
-  if (selectedArticle) {
-    return <ArticleView article={selectedArticle} onBack={() => setSelectedArticle(null)} />;
-  }
-
-  return (
-    <div>
-      <button onClick={onBack}>Back to Chapter</button>
-      <h2>Section {section.number}</h2>
-      <ul>
-        {section.articles.map((article) => (
-          <li key={article.id}>
-            <button onClick={() => setSelectedArticle(article)}>
-              Article {article.number}: {article.title}
-            </button>
-          </li>
-        ))}
-      </ul>
-    </div>
-  );
-}
-
-// ChapterView component
-function ChapterView({ chapter, onBack }) {
-  const [selectedView, setSelectedView] = useState(null);
-
-  if (selectedView) {
-    return selectedView;
-  }
-
-  return (
-    <div>
-      <button onClick={onBack}>Back to Document</button>
-      <h2>Chapter {chapter.number}</h2>
-      <ul>
-        {chapter.sections.map((section) => (
-          <li key={section.id}>
-            <button onClick={() => setSelectedView(<SectionView section={section} onBack={() => setSelectedView(null)} />)}>
-              Section {section.number}: {section.title}
-            </button>
-          </li>
-        ))}
-        {chapter.articles.map((article) => (
-          <li key={article.id}>
-            <button onClick={() => setSelectedView(<ArticleView article={article} onBack={() => setSelectedView(null)} />)}>
-              Article {article.number}: {article.title}
-            </button>
-          </li>
-        ))}
-      </ul>
-    </div>
-  );
-}
-
-// UnassignedArticlesView component
-function UnassignedArticlesView({ articles, onBack }) {
-  const [selectedArticle, setSelectedArticle] = useState(null);
-
-  if (selectedArticle) {
-    return <ArticleView article={selectedArticle} onBack={() => setSelectedArticle(null)} />;
-  }
-
-  return (
-    <div>
-      <button onClick={onBack}>Back to Document</button>
-      <h2>Unassigned Articles</h2>
-      <ul>
-        {articles.map((article) => (
-          <li key={article.id}>
-            <button onClick={() => setSelectedArticle(article)}>
-              Article {article.number}: {article.title}
-            </button>
-          </li>
-        ))}
-      </ul>
-    </div>
-  );
-}
-
-// EULawDocumentView component
-function EULawDocumentView({ document }) {
-  const [selectedView, setSelectedView] = useState(null);
-
-  if (selectedView) {
-    return selectedView;
-  }
-
-  return (
-    <div>
-      <h2>{document.title}</h2>
-      <ul>
-        {document.chapters.map((chapter) => (
-          <li key={chapter.id}>
-            <button onClick={() => setSelectedView(<ChapterView chapter={chapter} onBack={() => setSelectedView(null)} />)}>
-              Chapter {chapter.number}: {chapter.title}
-            </button>
-          </li>
-        ))}
-        {document.unassignedArticles.length > 0 && (
-          <li>
-            <button onClick={() => setSelectedView(<UnassignedArticlesView articles={document.unassignedArticles} onBack={() => setSelectedView(null)} />)}>
-              Unassigned Articles
-            </button>
-          </li>
-        )}
-      </ul>
-    </div>
-  );
-}
-
-// Main App component
 export default function Home() {
   const [url, setUrl] = useState('');
-  const [document, setDocument] = useState(null);
+  const [parsedDocument, setParsedDocument] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -202,7 +70,7 @@ export default function Home() {
     e.preventDefault();
     setLoading(true);
     setError('');
-    setDocument(null);
+    setParsedDocument(null);
 
     try {
       const response = await fetch(url);
@@ -211,8 +79,8 @@ export default function Home() {
       }
       const plainText = await response.text();
       const parser = new EULawParser();
-      const parsedDocument = parser.parse(plainText);
-      setDocument(parsedDocument);
+      const document = parser.parse(plainText);
+      setParsedDocument(document);
     } catch (error) {
       console.error('Error parsing document:', error);
       setError('Failed to fetch or parse the document. Please check the URL and try again.');
@@ -221,24 +89,44 @@ export default function Home() {
     }
   };
 
+  const renderHierarchy = (document) => {
+    if (!document) return null;
+
+    return (
+      <pre>
+        {document.title}
+        {document.chapters.map((chapter, chapterIndex) => `
+  Chapter ${chapter.number}: ${chapter.title}
+    ${chapter.sections.map((section, sectionIndex) => `
+    Section ${section.number}: ${section.title}
+      ${section.articles.map((article, articleIndex) => `
+      Article ${article.number}: ${article.title}`).join('')}`).join('')}
+    ${chapter.articles.map((article, articleIndex) => `
+    Article ${article.number}: ${article.title}`).join('')}`).join('')}
+        ${document.unassignedArticles.map((article, articleIndex) => `
+  Article ${article.number}: ${article.title}`).join('')}
+      </pre>
+    );
+  };
+
   return (
-    <div style={{ maxWidth: '800px', margin: '0 auto', padding: '20px' }}>
-      <h1 style={{ fontSize: '24px', fontWeight: 'bold', marginBottom: '16px' }}>EU Law Document Parser</h1>
-      <form onSubmit={handleSubmit} style={{ marginBottom: '16px' }}>
+    <div style={{ fontFamily: 'Arial, sans-serif', maxWidth: '800px', margin: '0 auto', padding: '20px' }}>
+      <h1>EU Law Document Parser</h1>
+      <form onSubmit={handleSubmit}>
         <input
           type="url"
           value={url}
           onChange={(e) => setUrl(e.target.value)}
           placeholder="Enter document URL"
           required
-          style={{ marginRight: '8px', padding: '8px', width: 'calc(100% - 120px)' }}
+          style={{ width: '70%', padding: '5px', marginRight: '10px' }}
         />
-        <button type="submit" disabled={loading} style={{ padding: '8px 16px' }}>
+        <button type="submit" disabled={loading}>
           {loading ? 'Parsing...' : 'Parse Document'}
         </button>
       </form>
       {error && <p style={{ color: 'red' }}>{error}</p>}
-      {document && <EULawDocumentView document={document} />}
+      {parsedDocument && renderHierarchy(parsedDocument)}
     </div>
   );
 }
