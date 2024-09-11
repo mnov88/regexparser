@@ -1,64 +1,5 @@
-// File: pages/index.js
 import { useState } from 'react';
-
-class EULawParser {
-  constructor() {
-    this.titlePattern = /^(Regulation|Directive|Decision|Recommendation|Opinion)\s+(\(EU\)\s+\d{4}\/\d+)\s+of\s+the\s+(.+)$/i;
-    this.chapterPattern = /^Chapter\s+(\d+[a-z]?)\s*(.+?)$/i;
-    this.sectionPattern = /^Section\s+(\d+)\s*(.+?)$/i;
-    this.articlePattern = /^Article\s+(\d+[a-z]?)\s*(.+?)$/i;
-    this.paragraphPattern = /^\s*(\d+\.)?\s*(.+)$/;
-    this.subparagraphPattern = /^\s*([a-z]\))?\s*(.+)$/;
-  }
-
-  parse(plainText) {
-    const lines = plainText.split('\n');
-    let document = { title: '', chapters: [], unassignedArticles: [] };
-    let currentChapter = null;
-    let currentSection = null;
-    let currentArticle = null;
-
-    for (const line of lines) {
-      const titleMatch = line.match(this.titlePattern);
-      const chapterMatch = line.match(this.chapterPattern);
-      const sectionMatch = line.match(this.sectionPattern);
-      const articleMatch = line.match(this.articlePattern);
-      const paragraphMatch = line.match(this.paragraphPattern);
-      const subparagraphMatch = line.match(this.subparagraphPattern);
-
-      if (titleMatch) {
-        document.title = `${titleMatch[1]} ${titleMatch[2]} of the ${titleMatch[3]}`;
-      } else if (chapterMatch) {
-        currentChapter = { number: chapterMatch[1], title: chapterMatch[2], sections: [], articles: [] };
-        document.chapters.push(currentChapter);
-        currentSection = null;
-        currentArticle = null;
-      } else if (sectionMatch) {
-        currentSection = { number: sectionMatch[1], title: sectionMatch[2], articles: [] };
-        currentChapter.sections.push(currentSection);
-        currentArticle = null;
-      } else if (articleMatch) {
-        currentArticle = { number: articleMatch[1], title: articleMatch[2], paragraphs: [] };
-        if (currentSection) {
-          currentSection.articles.push(currentArticle);
-        } else if (currentChapter) {
-          currentChapter.articles.push(currentArticle);
-        } else {
-          document.unassignedArticles.push(currentArticle);
-        }
-      } else if (paragraphMatch && currentArticle) {
-        currentArticle.paragraphs.push({ number: paragraphMatch[1], content: paragraphMatch[2] });
-      } else if (subparagraphMatch && currentArticle) {
-        const lastParagraph = currentArticle.paragraphs[currentArticle.paragraphs.length - 1];
-        if (lastParagraph) {
-          lastParagraph.content += '\n' + (subparagraphMatch[1] || '') + subparagraphMatch[2];
-        }
-      }
-    }
-
-    return document;
-  }
-}
+import { EULawParser } from '../utils/EULawParser';
 
 export default function Home() {
   const [url, setUrl] = useState('');
@@ -73,11 +14,19 @@ export default function Home() {
     setParsedDocument(null);
 
     try {
-      const response = await fetch(url);
+      const response = await fetch('/api/fetchDocument', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ url }),
+      });
+
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
-      const plainText = await response.text();
+
+      const { plainText } = await response.json();
       const parser = new EULawParser();
       const document = parser.parse(plainText);
       setParsedDocument(document);
