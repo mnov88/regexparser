@@ -1,6 +1,4 @@
-// File: pages/index.js
 import { useState } from 'react';
-import { Input, Button, List } from '@/components/ui';
 
 export default function Home() {
   const [url, setUrl] = useState('');
@@ -25,29 +23,29 @@ export default function Home() {
   };
 
   return (
-    <div className="container mx-auto p-4">
-      <h1 className="text-2xl font-bold mb-4">EU Law Document Parser</h1>
-      <form onSubmit={handleSubmit} className="mb-4">
-        <Input
+    <div style={{ maxWidth: '800px', margin: '0 auto', padding: '20px' }}>
+      <h1 style={{ fontSize: '24px', fontWeight: 'bold', marginBottom: '16px' }}>EU Law Document Parser</h1>
+      <form onSubmit={handleSubmit} style={{ marginBottom: '16px' }}>
+        <input
           type="url"
           value={url}
           onChange={(e) => setUrl(e.target.value)}
           placeholder="Enter document URL"
           required
-          className="mr-2"
+          style={{ marginRight: '8px', padding: '8px' }}
         />
-        <Button type="submit" disabled={loading}>
+        <button type="submit" disabled={loading} style={{ padding: '8px 16px' }}>
           {loading ? 'Parsing...' : 'Parse Document'}
-        </Button>
+        </button>
       </form>
       {articles.length > 0 && (
-        <List>
+        <ul style={{ listStyleType: 'none', padding: 0 }}>
           {articles.map((article) => (
-            <List.Item key={article.id}>
+            <li key={article.id} style={{ marginBottom: '8px' }}>
               Article {article.number}: {article.title}
-            </List.Item>
+            </li>
           ))}
-        </List>
+        </ul>
       )}
     </div>
   );
